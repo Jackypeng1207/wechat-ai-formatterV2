@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 公众号排版器 - 智能对话生成</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            padding: 15px;
+            overflow: hidden;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 0;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message.user {
+            align-items: flex-end;
+        }
+        
+        .message.ai {
+            align-items: flex-start;
+        }
+        
+        .message-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message.ai .message-bubble {
+            background: #f1f5f9;
+            color: #334155;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-meta {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+            padding: 0 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .message-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .message-action-button {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .message-action-button:hover {
+            background: #f1f5f9;
+            color: #334155;
+            border-color: #cbd5e0;
+        }
+        
+        .message-action-button i {
+            font-size: 12px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .chat-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .writing-style-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .writing-style-selector label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            white-space: nowrap;
+        }
+        
+        .writing-style-dropdown {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 14px;
+            min-width: 120px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .writing-style-dropdown:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .chat-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chat-action-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #f1f3f4;
+            color: #3c4043;
+            border: 1px solid #dadce0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+        
+        .chat-action-button:hover {
+            background: #e8eaed;
+            border-color: #c1c7cd;
+            color: #3c4043;
+        }
+        
+        .chat-action-button i {
+            font-size: 14px;
+        }
+        
+        .chat-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+            line-height: 1.5;
+            outline: none;
+        }
+        
+        .chat-input:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .send-button {
+            margin-left: 10px;
+            padding: 10px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        
+        .send-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .send-button:active {
+            transform: scale(0.98);
+        }
+        
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .send-button i {
+            font-size: 16px;
+        }
+        
+        .markdown-editor {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+        }
+        
+        .markdown-editor:focus {
+            border-color: #667eea;
+        }
+        
+        .style-selector {
+            margin-bottom: 15px;
+        }
+        
+        .style-dropdown {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .action-button {
+            flex: 1;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .action-button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .action-button.secondary {
+            background: #f1f5f9;
+            color: #334155;
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .preview-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .style-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .style-selector label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            white-space: nowrap;
+        }
+        
+        .style-selector select {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background-color: white;
+            font-size: 14px;
+            min-width: 120px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .style-selector select:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .edit-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background-color 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+        
+        .edit-button:hover {
+            background-color: #0056b3;
+        }
+        
+        .edit-button:active {
+            transform: scale(0.98);
+        }
+        
+        .edit-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .edit-button i {
+            font-size: 14px;
+        }
+        
+        .preview-container {
+            position: relative;
+        }
+        
+        .edit-section {
+            margin-bottom: 15px;
+        }
+        
+        .edit-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .edit-section textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .api-key-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .api-key-modal.hidden {
+            display: none;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1e293b;
+        }
+        
+        .modal-description {
+            color: #64748b;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .api-key-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+        
+        .api-key-input:focus {
+            border-color: #667eea;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .modal-button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .modal-button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .modal-button.secondary {
+            background: #f1f5f9;
+            color: #334155;
+        }
+        
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #343a40;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #343a40 transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(120%);
+            transition: transform 0.3s ease-out;
+            max-width: 300px;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background-color: #28a745;
+        }
+        
+        .notification.error {
+            background-color: #dc3545;
+        }
+        
+        .notification.warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .notification.info {
+            background-color: #17a2b8;
+        }
+        
+        /* 工作流程步骤样式 */
+        .workflow-step {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #4a6cf7;
+        }
+
+        .step-number {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 30px;
+            height: 30px;
+            background-color: #4a6cf7;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .step-description {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr 1fr;
+            }
+
+            .panel {
+                min-height: 400px;
+            }
+
+            .chat-messages {
+                height: 200px;
+            }
+
+            .markdown-editor {
+                height: 200px;
+            }
+
+            .preview-container {
+                height: 200px;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-bubble {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .preview-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* 加载状态 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <div class="header">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-bold text-gray-800">AI 公众号排版器</h1>
+                <div class="flex items-center space-x-4">
+                    <div id="apiStatus" class="flex items-center text-sm">
+                        <i class="fas fa-circle mr-1 text-red-500" id="apiStatusIcon"></i>
+                        <span id="apiStatusText">未连接</span>
+                    </div>
+                    <button id="apiKeyBtn" class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">
+                        <i class="fas fa-key mr-1"></i> API设置
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 左侧：AI对话区 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-comments mr-2 text-purple-600"></i>AI 对话
+                    </h2>
+                    <span id="chatStatus" class="text-xs text-gray-500">就绪</span>
+                </div>
+                <div class="panel-content">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai">
+                            <div class="message-bubble">
+                                你好，我是你的专属公众号爆款内容架构师AI助手。我的核心使命是帮助你高效产出爆款文章。
+                                
+                                【第1步：痛点锁定】
+                                一篇爆款的起点，不是文采，而是精准的"痛点"。
+                                
+                                请告诉我：
+                                1. 目标读者：比如，是30-40岁的焦虑宝妈？还是刚入职场的00后？
+                                2. 核心焦虑：他们深夜睡不着时，脑子里在循环的那个具体问题是什么？
+                            </div>
+                            <div class="message-meta">爆款内容架构师 · 刚刚</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <div class="chat-options">
+                            <div class="writing-style-selector">
+                            <label for="writingStyleDropdown" class="text-xs text-gray-600">写作风格：</label>
+                            <select id="writingStyleDropdown" class="writing-style-dropdown">
+                                <option value="default">默认风格</option>
+                                <option value="simple">朴实风格</option>
+                                <option value="kazik">卡兹克风格</option>
+                                <option value="lively">活泼风格</option>
+                                <option value="professional">专业风格</option>
+                                <option value="humorous">幽默风格</option>
+                            </select>
+                        </div>
+                        <div class="chat-actions">
+                            <div class="tooltip">
+                                <button id="rewriteBtn" class="chat-action-button" title="改写内容">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <span class="tooltiptext">基于选定的写作风格改写当前内容</span>
+                            </div>
+                            <div class="tooltip">
+                                <button id="translateBtn" class="chat-action-button" title="翻译成英文">
+                                    <i class="fas fa-language"></i>
+                                </button>
+                                <span class="tooltiptext">将中文内容翻译成英文</span>
+                            </div>
+                            <div class="tooltip">
+                                <button id="completeBtn" class="chat-action-button" title="智能补全">
+                                    <i class="fas fa-plus-circle"></i>
+                                </button>
+                                <span class="tooltiptext">基于当前内容和风格智能补全</span>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="chat-input-wrapper">
+                            <input type="text" id="chatInput" class="chat-input" placeholder="输入您的想法或主题..." />
+                            <button id="sendBtn" class="send-button">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="step-number">1</div>
+                        <div class="step-description">与AI对话，获取内容</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 中间：Markdown编辑区 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-edit mr-2 text-blue-600"></i>Markdown 编辑
+                    </h2>
+                    <button id="confirmMarkdownBtn" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-600 px-3 py-1 rounded-lg transition">
+                        确认内容
+                    </button>
+                </div>
+                <div class="panel-content">
+                    <textarea id="markdownEditor" class="markdown-editor" placeholder="AI生成的Markdown内容将显示在这里，您可以进行修改..."></textarea>
+                    <div class="action-buttons">
+                        <button id="copyMarkdownBtn" class="action-button secondary">
+                            <i class="fas fa-copy mr-1"></i> 复制Markdown
+                        </button>
+                        <button id="generateBtn" class="action-button primary">
+                            <i class="fas fa-magic mr-1"></i> 生成排版
+                        </button>
+                    </div>
+                    <div class="workflow-step">
+                        <div class="step-number">2</div>
+                        <div class="step-description">同步内容并确认排版</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧：预览区 -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2 class="text-lg font-semibold text-gray-800">
+                        <i class="fas fa-eye mr-2 text-green-600"></i>排版预览
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <div class="tooltip">
+                            <button id="editSelectedBtn" class="text-xs bg-blue-100 hover:bg-blue-200 text-blue-600 px-3 py-1 rounded-lg transition">
+                                <i class="fas fa-edit mr-1"></i>编辑选中
+                            </button>
+                            <span class="tooltiptext">选择预览区域中的文本后，点击此按钮进行编辑</span>
+                        </div>
+                        <div class="tooltip">
+                            <button id="copyRichTextBtn" class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-600 px-3 py-1 rounded-lg transition">
+                                <i class="fas fa-copy mr-1"></i>复制富文本
+                            </button>
+                            <span class="tooltiptext">复制带格式的富文本内容，直接粘贴到公众号编辑器</span>
+                        </div>
+                        <button id="copyHtmlBtn" class="text-xs bg-green-100 hover:bg-green-200 text-green-600 px-3 py-1 rounded-lg transition">
+                            复制HTML
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div class="style-selector">
+                        <select id="styleDropdown" class="style-dropdown">
+                            <option value="ai-tech">AI科技风格</option>
+                            <option value="minimalist">极简商务风格</option>
+                            <option value="professional">专业学术风格</option>
+                            <option value="creative">创意设计风格</option>
+                        </select>
+                    </div>
+                    <iframe id="previewFrame" class="preview-frame"></iframe>
+                    <div class="workflow-step">
+                        <div class="step-number">3</div>
+                        <div class="step-description">预览并导出最终文档</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- API密钥设置模态框 -->
+    <div id="apiKeyModal" class="api-key-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">API配置设置</h3>
+            <p class="modal-description">
+                请输入您的API密钥并选择模型以使用AI功能。您的密钥将安全存储在本地浏览器中，不会上传到任何服务器。
+            </p>
+            
+            <!-- API提供商选择 -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">API提供商</label>
+                <select id="apiProvider" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="siliconflow">硅基流动</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            
+            <!-- 模型选择 -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">模型选择</label>
+                <select id="modelSelect" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <!-- 硅基流动模型 -->
+                    <optgroup label="硅基流动模型">
+                        <option value="deepseek-ai/deepseek-chat">DeepSeek Chat</option>
+                        <option value="Qwen/Qwen2.5-7B-Instruct">Qwen2.5-7B-Instruct</option>
+                        <option value="Qwen/Qwen2.5-14B-Instruct">Qwen2.5-14B-Instruct</option>
+                        <option value="Qwen/Qwen2.5-32B-Instruct">Qwen2.5-32B-Instruct</option>
+                        <option value="Qwen/Qwen2.5-72B-Instruct">Qwen2.5-72B-Instruct</option>
+                        <option value="meta-llama/Meta-Llama-3.1-8B-Instruct">Llama-3.1-8B-Instruct</option>
+                        <option value="meta-llama/Meta-Llama-3.1-70B-Instruct">Llama-3.1-70B-Instruct</option>
+                        <option value="01-ai/Yi-1.5-9B-Chat-16K">Yi-1.5-9B-Chat-16K</option>
+                        <option value="01-ai/Yi-1.5-34B-Chat-16K">Yi-1.5-34B-Chat-16K</option>
+                        <option value="THUDM/glm-4-9b-chat">GLM-4-9B-Chat</option>
+                        <option value="internlm/internlm2_5-7b-chat">InternLM2.5-7B-Chat</option>
+                        <option value="internlm/internlm2_5-20b-chat">InternLM2.5-20B-Chat</option>
+                    </optgroup>
+                    
+                    <!-- OpenAI模型 -->
+                    <optgroup label="OpenAI模型">
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </optgroup>
+                    
+                    <!-- 自定义 -->
+                    <optgroup label="自定义">
+                        <option value="custom">自定义模型</option>
+                    </optgroup>
+                </select>
+            </div>
+            
+            <!-- API基础URL（自定义时显示） -->
+            <div id="apiUrlContainer" class="mb-4 hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-2">API基础URL</label>
+                <input type="text" id="apiBaseUrl" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="https://api.example.com/v1" />
+            </div>
+            
+            <!-- API密钥输入 -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">API密钥</label>
+                <input type="password" id="apiKeyInput" class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="请输入您的API密钥" />
+            </div>
+            
+            <div class="modal-buttons">
+                <button id="cancelApiKeyBtn" class="modal-button secondary">取消</button>
+                <button id="saveApiKeyBtn" class="modal-button primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 公众号排版转换器 (最终版)</title>
+    <!-- 加载 Tailwind CSS 用于美化界面 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* [CSS Styles are Identical to previous steps] */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+        textarea {
+            resize: none;
+            height: 300px;
+        }
+        #previewFrame {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #cbd5e1;
+            background-color: white;
+            border-radius: 0.5rem;
+        }
+        .loading-ring {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2563EB;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container space-y-8">
+        <header class="text-center">
+            <h1 class="text-4xl font-bold text-gray-800">AI 公众号 HTML 排版引擎 - 最终版</h1>
+            <p class="text-gray-500 mt-2">所有专业排版规则已集成。</p>
+        </header>
+
+        <main class="grid lg:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <label for="inputContent" class="block text-lg font-medium text-gray-700">1. 输入内容</label>
+                <textarea id="inputContent" class="w-full p-4 border border-gray-300 rounded-lg shadow-inner focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="粘贴您的文章内容..." rows="10">这是一个完整的文章内容，请确保文章头部增加引用样式的简短摘要。</textarea>
+                <button id="convertBtn" class="w-full flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200">
+                    <span id="buttonText">AI 转换为 HTML 排版</span>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <label for="outputHtml" class="block text-lg font-medium text-gray-700">2. 生成的微信兼容 HTML 代码</label>
+                <textarea id="outputHtml" readonly class="w-full p-4 border border-gray-300 rounded-lg shadow-inner bg-gray-50" placeholder="AI 生成的 HTML 代码将显示在这里..." rows="10"></textarea>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">3. 预览效果 (微信模拟)</span>
+                    <div class="flex gap-2">
+                        <button id="copyBtn" onclick="copyToClipboard()" class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                            复制 HTML 代码
+                        </button>
+                        <button id="copyStyleBtn" onclick="copyPreviewContent()" class="px-4 py-2 border border-blue-500 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition duration-150">
+                            一键复制样式
+                        </button>
+                    </div>
+                </div>
+                <div id="previewWrapper" class="p-4 border-2 border-dashed border-blue-300 rounded-lg bg-white overflow-y-scroll">
+                    <iframe id="previewFrame" title="HTML Preview" sandbox="allow-scripts allow-same-origin"></iframe>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const apiKey = "sk-evnzwlkcztarigsagfktigefdzpqevgnggednvkgbbewsttn"; // 硅基流动API Key 
+
+        const inputContent = document.getElementById('inputContent');
+        const outputHtml = document.getElementById('outputHtml');
+        const convertBtn = document.getElementById('convertBtn');
+        const buttonText = document.getElementById('buttonText');
+        const previewFrame = document.getElementById('previewFrame');
+
+        // 智能内容处理系统 - 召哥AI笔记室
+        const SYSTEM_INSTRUCTION = `
+            # 🤖 召哥AI笔记室 - 智能内容处理系统
+
+            ## 🎯 内容模式智能判断
+            根据用户输入内容的字数自动切换处理模式：
+            - **内容创作模式**（<100字）：基于输入内容生成800-1200字的完整文章
+            - **排版优化模式**（≥100字）：对输入内容进行结构优化和样式应用
+
+            ## 🚀 内容创作模式（<100字）
+            **创作要求**：
+            - 基于用户提供的简短主题或关键词
+            - 生成800-1200字的完整技术文章
+            - 包含：技术解析、代码示例、实战案例、总结展望
+            - 确保内容专业、实用、有深度
+
+            **文章结构**：
+            1. **引言**：技术背景和重要性
+            2. **技术解析**：原理和核心概念
+            3. **代码实现**：完整可运行的代码示例
+            4. **实战应用**：具体应用场景和效果
+            5. **总结展望**：技术趋势和发展方向
+
+            ## 🎨 排版优化模式（≥100字）
+            **优化要求**：
+            - 保持原文内容完整性
+            - 优化文章结构和段落划分
+            - 应用适当的样式和格式
+            - 增强可读性和专业性
+
+            **优化重点**：
+            - 标题层级清晰化
+            - 代码块格式标准化
+            - 重点内容突出显示
+            - 段落间距和排版优化
+
+            ## 🏷️ 微信公众号兼容性要求
+            **视觉基调**：
+            - **主色调**：深蓝色系 (#1E3A8A) + 荧光蓝 (#00D4FF)
+            - **字体规范**：标题18px加粗，正文16px行高1.7
+            - **布局**：最大宽度680px，水平边距20px
+
+            **技术实现**：
+            - 所有样式必须内联，确保微信兼容性
+            - 使用微信公众号支持的CSS属性
+            - 避免外部样式表和复杂选择器
+            - 确保移动端友好显示
+
+            ## 📝 输出格式要求
+            **HTML结构**：
+            - 完整的HTML片段，从<div>开始
+            - 包含所有必要的内联样式
+            - 语义化标签和合理结构
+            - 确保复制到微信公众号编辑器不丢失格式
+
+            **固定模块**：
+            - 文章头部：品牌标识和摘要
+            - 文章主体：优化后的内容
+            - 文章底部：作者信息和关注引导
+
+            请根据输入内容的字数自动选择处理模式，并生成完全兼容微信公众号编辑器的HTML代码。
+        `;
+
+        // --- 智能内容处理函数 ---
+
+        // 判断内容模式
+        function determineContentMode(content) {
+            const wordCount = content.trim().length;
+            return wordCount < 100 ? 'creation' : 'optimization';
+        }
+
+        // 生成模式特定的提示
+        function generateModeSpecificPrompt(content, mode) {
+            const basePrompt = `
+            当前输入内容："${content}"
+            字数：${content.trim().length}字
+            检测模式：${mode === 'creation' ? '内容创作模式' : '排版优化模式'}
+            
+            请严格按照以下要求处理：
+            `;
+
+            if (mode === 'creation') {
+                return basePrompt + `
+            ## 内容创作要求（800-1200字）：
+            1. **文章扩展**：基于输入主题生成完整的技术文章
+            2. **技术深度**：包含详细的技术解析和代码示例
+            3. **结构完整**：引言、技术解析、代码实现、实战应用、总结展望
+            4. **专业性**：确保内容专业、实用、有深度
+            `;
+            } else {
+                return basePrompt + `
+            ## 排版优化要求：
+            1. **内容保持**：不删除或修改原文内容
+            2. **结构优化**：合理划分段落，优化标题层级
+            3. **样式应用**：应用微信公众号兼容的内联样式
+            4. **可读性**：增强文章的可读性和专业性
+            `;
+            }
+        }
+
+        // 微信公众号兼容HTML生成器
+        function generateWeChatCompatibleHTML(aiResponse) {
+            // 提取AI返回的HTML内容
+            const contentMatch = aiResponse.match(/<div[\s\S]*?<\/div>/i);
+            const contentHtml = contentMatch ? contentMatch[0] : aiResponse;
+            
+            // 构建完整的微信公众号兼容HTML
+            return `
+                <div style="max-width: 680px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #333; background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%);">
+                    
+                    <!-- 文章头部 -->
+                    <div style="background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #00D4FF 0%, #1E40AF 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                                <span style="color: white; font-weight: bold; font-size: 18px;">AI</span>
+                            </div>
+                            <div>
+                                <h1 style="color: #1E3A8A; font-size: 20px; font-weight: bold; margin: 0;">召哥AI笔记室</h1>
+                                <p style="color: #6B7280; font-size: 14px; margin: 4px 0 0 0;">专注AI技术分享与实战</p>
+                            </div>
+                        </div>
+                        <div style="background: linear-gradient(90deg, #F0F9FF 0%, #E0F2FE 100%); border-left: 4px solid #00D4FF; padding: 12px 16px; border-radius: 4px;">
+                            <p style="color: #1E3A8A; font-size: 14px; margin: 0; line-height: 1.5;">本文由AI智能生成，确保技术内容的准确性和专业性</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 文章主体内容 -->
+                    <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                        ${contentHtml}
+                    </div>
+                    
+                    <!-- 文章底部 -->
+                    <div style="background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 24px; margin-top: 24px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                            <div style="background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); padding: 16px; border-radius: 8px; border-left: 4px solid #00D4FF;">
+                                <h4 style="color: #1E3A8A; font-size: 16px; font-weight: bold; margin: 0 0 8px 0;">📚 更多技术干货</h4>
+                                <p style="color: #6B7280; font-size: 14px; margin: 0; line-height: 1.4;">关注获取最新AI技术解析和实战案例</p>
+                            </div>
+                            <div style="background: linear-gradient(135deg, #FEF7CD 0%, #FEF3C7 100%); padding: 16px; border-radius: 8px; border-left: 4px solid #F59E0B;">
+                                <h4 style="color: #92400E; font-size: 16px; font-weight: bold; margin: 0 0 8px 0;">💡 技术交流</h4>
+                                <p style="color: #92400E; font-size: 14px; margin: 0; line-height: 1.4;">加入技术社群，与同行交流学习</p>
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #E5E7EB;">
+                            <p style="color: #6B7280; font-size: 14px; margin: 0;">© 2024 召哥AI笔记室 · 让技术更简单</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- API 和辅助函数保持不变 ---
+
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        if (response.status >= 500) {
+                            throw new Error(`Server error: ${response.status}`);
+                        }
+                        const errorBody = await response.json();
+                        throw new Error(`Client error: ${response.status} - ${JSON.stringify(errorBody)}`);
+                    }
+                    return response;
+                } catch (error) {
+                    console.error(`Attempt ${i + 1} failed:`, error.message);
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        // 智能内容模式判断函数
+        function determineContentMode(content) {
+            const shortThreshold = 200;
+            const hasKeywords = /(大纲|要点|主题|思路|框架|草稿|想法|脑图)/.test(content);
+            
+            if (content.length < shortThreshold || hasKeywords) {
+                return 'creation';
+            }
+            return 'optimization';
+        }
+
+        // 生成模式特定提示词
+        function generateModeSpecificPrompt(content, mode) {
+            if (mode === 'creation') {
+                return `请根据以下大纲或要点创作完整的AI科技文章：\n\n${content}\n\n要求：\n1. 生成完整的文章内容，包含引言、正文和结论\n2. 融入召哥AI笔记室的品牌风格和排版元素\n3. 确保内容专业且具有科技感`;
+            } else {
+                return `请对以下文章内容进行专业排版优化：\n\n${content}\n\n要求：\n1. 保持原文内容完整性\n2. 应用召哥AI笔记室的专属排版样式\n3. 优化阅读体验和视觉效果`;
+            }
+        }
+
+        // 生成微信公众号兼容的HTML
+        function generateWeChatCompatibleHTML(aiResponse) {
+            // 清理AI响应中的代码块标记
+            let html = aiResponse.replace(/```html\n?|```/g, '').trim();
+            
+            // 确保HTML结构完整
+            if (!html.startsWith('<div')) {
+                html = `<div style="max-width: 680px; margin: 0 auto; padding: 20px;">${html}</div>`;
+            }
+            
+            return html;
+        }
+
+        function showTemporaryMessage(message, color) {
+            const tempSpan = document.createElement('span');
+            tempSpan.textContent = message;
+            // 修复语法错误：确保 className 的模板字符串没有额外的反斜杠
+            tempSpan.className = `text-${color}-600 font-semibold absolute top-0 right-0 p-2 bg-${color}-100 rounded-lg shadow-md`;
+            
+            const container = document.querySelector('.container');
+            container.style.position = 'relative';
+            container.appendChild(tempSpan);
+
+            setTimeout(() => {
+                container.removeChild(tempSpan);
+            }, 3000);
+        }
+
+        // 智能转换函数
+        convertBtn.addEventListener('click', async () => {
+            const content = inputContent.value.trim();
+            if (!content) {
+                alert('请输入内容');
+                return;
+            }
+
+            // 智能判断内容模式
+            const mode = determineContentMode(content);
+            const modePrompt = generateModeSpecificPrompt(content, mode);
+            
+            buttonText.innerHTML = '<div class="loading-ring"></div>' + 
+                (mode === 'creation' ? 'AI 正在创作内容...' : 'AI 正在优化排版...');
+            convertBtn.disabled = true;
+
+            try {
+                const response = await fetchWithRetry('https://api.siliconflow.cn/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek-ai/DeepSeek-V3-0324',
+                        messages: [
+                            { role: 'system', content: SYSTEM_INSTRUCTION },
+                            { role: 'user', content: modePrompt }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: mode === 'creation' ? 4000 : 3000
+                    })
+                });
+
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                
+                // 生成微信公众号兼容的HTML
+                const finalHtml = generateWeChatCompatibleHTML(aiResponse);
+                outputHtml.value = finalHtml;
+                
+                // 更新预览
+                const fullHtml = '<!DOCTYPE html>' + 
+                    '<html>' +
+                    '<head>' +
+                    '    <meta charset="UTF-8">' +
+                    '    <meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+                    '    <title>Preview</title>' +
+                    '    <style>' +
+                    '        body { margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }' +
+                    '        .preview-content { max-width: 680px; margin: 0 auto; }' +
+                    '    </style>' +
+                    '</head>' +
+                    '<body>' +
+                    '    <div class="preview-content">' + finalHtml + '</div>' +
+                    '</body>' +
+                    '</html>';
+                previewFrame.srcdoc = fullHtml;
+                
+                // 显示模式提示
+                const modeText = mode === 'creation' ? '内容创作模式' : '排版优化模式';
+                showTemporaryMessage(`已切换到${modeText}，生成${content.trim().length}字内容`);
+                
+            } catch (error) {
+                console.error('转换失败:', error);
+                alert('转换失败，请重试: ' + error.message);
+            } finally {
+                buttonText.textContent = 'AI 智能处理内容';
+                convertBtn.disabled = false;
+            }
+        });
+
+        // 显示临时消息
+        function showTemporaryMessage(message, duration = 3000) {
+            // 移除已存在的消息
+            const existingMessage = document.getElementById('tempMessage');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            // 创建消息元素
+            const messageEl = document.createElement('div');
+            messageEl.id = 'tempMessage';
+            messageEl.innerHTML = `
+                <div style="position: fixed; top: 20px; right: 20px; background: #10B981; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; font-size: 14px; animation: slideIn 0.3s ease-out;">
+                    ${message}
+                </div>
+            `;
+            
+            // 添加动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(messageEl);
+            
+            // 自动移除消息
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.style.animation = 'slideOut 0.3s ease-in';
+                    setTimeout(() => messageEl.remove(), 300);
+                }
+            }, duration);
+        }
+
+        function copyToClipboard() {
+            const htmlContent = outputHtml.value;
+            if (!htmlContent) {
+                showTemporaryMessage('请先生成HTML内容');
+                return;
+            }
+            
+            navigator.clipboard.writeText(htmlContent).then(() => {
+                showTemporaryMessage('✅ HTML代码已复制到剪贴板');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                showTemporaryMessage('❌ 复制失败，请手动复制');
+            });
+        }
+
+        // 复制预览内容函数（微信公众号兼容）
+        function copyPreviewContent() {
+            const htmlContent = outputHtml.value;
+            if (!htmlContent) {
+                showTemporaryMessage('请先生成HTML内容');
+                return;
+            }
+            
+            // 使用Clipboard API复制HTML内容
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const clipboardItem = new ClipboardItem({ 'text/html': blob });
+            
+            navigator.clipboard.write([clipboardItem]).then(() => {
+                showTemporaryMessage('✅ 微信公众号兼容内容已复制');
+            }).catch(err => {
+                // 降级方案：复制纯文本
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlContent;
+                const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                
+                navigator.clipboard.writeText(textContent).then(() => {
+                    showTemporaryMessage('✅ 文本内容已复制到剪贴板');
+                }).catch(() => {
+                    showTemporaryMessage('❌ 复制失败，请手动复制');
+                });
+            });
+        }
+    </script>
+</body>
+</html>
+

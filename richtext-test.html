@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>富文本复制测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-content {
+            max-width: 680px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .test-content h1 { color: #1a365d; font-size: 24px; }
+        .highlight { background-color: #e6f7ff; border-left: 4px solid #1890ff; padding: 10px; margin: 15px 0; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧪 富文本复制测试</h1>
+    <p>点击下方按钮测试富文本复制功能：</p>
+
+    <button onclick="copyRichText()">📋 复制富文本</button>
+    <button onclick="copyPlainHtml()">💻 复制HTML代码</button>
+
+    <div class="test-content" id="testContent">
+        <h1>AI 公众号排版测试</h1>
+        <p>这是一段包含<strong>加粗文本</strong>和<span style="color: red;">彩色文本</span>的测试内容。</p>
+        <div class="highlight">
+            <p>这是一个高亮的引用块，用于测试格式保持情况。</p>
+        </div>
+        <ul>
+            <li>列表项 1</li>
+            <li>列表项 2</li>
+        </ul>
+    </div>
+
+    <script>
+        async function copyRichText() {
+            const content = document.getElementById('testContent').innerHTML;
+            try {
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.innerHTML = content;
+                document.body.appendChild(tempDiv);
+
+                const range = document.createRange();
+                range.selectNodeContents(tempDiv);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                const successful = document.execCommand('copy');
+                document.body.removeChild(tempDiv);
+                selection.removeAllRanges();
+
+                if (successful) {
+                    alert('✅ 富文本已复制！请在公众号编辑器中粘贴测试。');
+                } else {
+                    throw new Error('execCommand failed');
+                }
+            } catch (error) {
+                // 降级方案
+                try {
+                    await navigator.clipboard.writeText(content.replace(/<[^>]*>/g, ''));
+                    alert('⚠️ 已降级为纯文本复制。请在公众号编辑器中粘贴查看效果。');
+                } catch (err) {
+                    alert('❌ 复制失败，请检查浏览器权限。');
+                }
+            }
+        }
+
+        function copyPlainHtml() {
+            const content = document.getElementById('testContent').innerHTML;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('HTML代码已复制！');
+            }).catch(() => {
+                alert('复制失败，请重试。');
+            });
+        }
+    </script>
+</body>
+</html>

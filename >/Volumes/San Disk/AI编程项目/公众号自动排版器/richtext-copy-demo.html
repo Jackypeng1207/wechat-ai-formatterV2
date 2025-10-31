@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>富文本复制测试页面</title>
+    <style>
+        .test-content {
+            max-width: 680px;
+            margin: 20px auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            line-height: 1.7;
+            color: #333;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .test-content h1 {
+            color: #1a365d;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .test-content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0 15px;
+        }
+
+        .test-content p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+
+        .test-content .highlight {
+            background-color: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .test-content .code-block {
+            background-color: #f5f5f5;
+            border: 1px solid #e1e1e1;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .test-content ul, .test-content ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        .test-content li {
+            margin: 8px 0;
+        }
+
+        .test-content strong {
+            font-weight: 600;
+            color: #d4af37;
+        }
+
+        .buttons {
+            text-align: center;
+            margin: 30px 20px;
+        }
+
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 0 10px;
+        }
+
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .instructions {
+            max-width: 680px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .instructions h3 {
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        .instructions li {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h3>📋 富文本复制测试说明</h3>
+        <ol>
+            <li>点击"复制富文本"按钮，将下面的内容复制到剪贴板</li>
+            <li>打开微信公众号后台编辑器</li>
+            <li>在编辑器中直接粘贴（Ctrl+V）</li>
+            <li>观察格式是否保持完整（颜色、字体、间距等）</li>
+            <li>如果格式丢失，请尝试使用不同的浏览器</li>
+        </ol>
+    </div>
+
+    <div class="buttons">
+        <button class="test-button" onclick="copyRichTextDemo()">
+            <i class="fas fa-copy"></i> 复制富文本
+        </button>
+        <button class="test-button" onclick="copyPlainHtml()">
+            <i class="fas fa-code"></i> 复制HTML代码
+        </button>
+    </div>
+
+    <div class="test-content" id="testContent">
+        <h1>AI 公众号排版器 - 富文本复制测试</h1>
+
+        <p>这是一段<strong>加粗的测试文本</strong>，用于验证富文本复制功能是否正常工作。</p>
+
+        <h2>主要特性</h2>
+
+        <div class="highlight">
+            <p>这个富文本区域包含了各种格式化元素，包括颜色、背景色、边框样式等。当您点击"复制富文本"按钮时，这些样式应该被完整地复制到剪贴板。</p>
+        </div>
+
+        <ul>
+            <li><strong>加粗文本测试</strong></li>
+            <li><span style="color: #1890ff;">彩色文本测试</span></li>
+            <li><span style="background-color: #fff7e6;">高亮背景测试</span></li>
+        </ul>
+
+        <h2>代码示例</h2>
+
+        <div class="code-block">
+// 这是代码块测试
+function copyRichText() {
+    const content = document.getElementById('testContent').innerHTML;
+    // 复制富文本到剪贴板
+    navigator.clipboard.writeText(content);
+}
+        </div>
+
+        <p>如果您能看到所有的格式和颜色，并且通过"复制富文本"按钮成功复制后，在微信公众号编辑器中粘贴时格式保持完整，说明功能正常工作。</p>
+
+        <p style="text-align: center; color: #667eea; font-size: 16px; font-weight: 500;">
+            测试完成！格式保持完整 ✅
+        </p>
+    </div>
+
+    <script>
+        async function copyRichTextDemo() {
+            const content = document.getElementById('testContent').innerHTML;
+
+            try {
+                // 方法1: 使用 execCommand（兼容性最好）
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.top = '-9999px';
+                tempDiv.innerHTML = content;
+                document.body.appendChild(tempDiv);
+
+                const range = document.createRange();
+                range.selectNodeContents(tempDiv);
+
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                const successful = document.execCommand('copy');
+
+                document.body.removeChild(tempDiv);
+                selection.removeAllRanges();
+
+                if (successful) {
+                    alert('✅ 富文本已复制到剪贴板！\n\n请现在打开微信公众号后台编辑器直接粘贴（Ctrl+V）测试格式。');
+                } else {
+                    // 降级到方法2
+                    copyWithClipboardAPI(content);
+                }
+            } catch (error) {
+                console.error('复制失败，降级到Clipboard API', error);
+                copyWithClipboardAPI(content);
+            }
+        }
+
+        async function copyWithClipboardAPI(content) {
+            try {
+                if (navigator.clipboard && window.ClipboardItem) {
+                    const blob = new Blob([content], { type: 'text/html' });
+                    const clipboardItem = new ClipboardItem({ 'text/html': blob });
+                    await navigator.clipboard.write([clipboardItem]);
+                    alert('✅ 富文本已复制到剪贴板！\n\n请现在打开微信公众号后台编辑器直接粘贴（Ctrl+V）测试格式。');
+                } else {
+                    throw new Error('Clipboard API 不被支持');
+                }
+            } catch (error) {
+                console.error('Clipboard API 失败', error);
+                // 降级到纯文本
+                await navigator.clipboard.writeText(content.replace(/<[^>]*>/g, ''));
+                alert('⚠️ 已复制为纯文本，部分格式可能丢失\n\n请复制下面的内容到公众号后台粘贴：\n\n' + content.replace(/<[^>]*>/g, ''));
+            }
+        }
+
+        function copyPlainHtml() {
+            const content = document.getElementById('testContent').innerHTML;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('HTML代码已复制到剪贴板！');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请重试');
+            });
+        }
+    </script>
+</body>
+</html>
