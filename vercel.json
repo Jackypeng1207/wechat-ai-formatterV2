@@ -14,14 +14,10 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/new-layout.html"
+      "source": "/",
+      "destination": "/new-layout.html"
     }
   ],
   "headers": [
